@@ -234,7 +234,7 @@ const ArbitrageExecution = {
                     [actual.a.spent, actual.b.earned, fees] = ArbitrageExecution.parseActualResults(calculated.trade.ab.method, calculated.trade.symbol.b, results);
                     actual.fees += fees;
                     actual.assetFees.b += assetFees;
-                    recalculated.bc = CalculationNode.recalculateTradeLeg(calculated.trade.bc, actual.b.earned);
+                    recalculated.bc = CalculationNode.recalculateTradeLeg(calculated.trade.bc, actual.b.earned, BinanceApi.cloneDepth(calculated.trade.bc.ticker, CONFIG.DEPTH.SIZE));
                 }
                 return BinanceApi.marketBuyOrSell(calculated.trade.bc.method)(calculated.trade.bc.ticker, recalculated.bc);
             })
@@ -243,7 +243,7 @@ const ArbitrageExecution = {
                     [actual.b.spent, actual.c.earned, fees] = ArbitrageExecution.parseActualResults(calculated.trade.bc.method, calculated.trade.symbol.c, results);
                     actual.fees += fees;
                     actual.assetFees.c += assetFees;
-                    recalculated.ca = CalculationNode.recalculateTradeLeg(calculated.trade.ca, actual.c.earned);
+                    recalculated.ca = CalculationNode.recalculateTradeLeg(calculated.trade.ca, actual.c.earned, BinanceApi.cloneDepth(calculated.trade.ca.ticker, CONFIG.DEPTH.SIZE));
                 }
                 return BinanceApi.marketBuyOrSell(calculated.trade.ca.method)(calculated.trade.ca.ticker, recalculated.ca);
             })
