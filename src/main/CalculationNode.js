@@ -1,4 +1,5 @@
 const CONFIG = require('../../config/config');
+const MarketCache = require('./MarketCache');
 
 const CalculationNode = {
 
