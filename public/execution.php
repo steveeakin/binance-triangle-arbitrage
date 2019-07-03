@@ -23,9 +23,9 @@ $logs = explode("\n", $logs);
 		    <tbody>
 	        	<?php foreach($logs as $log) { ?>
 	        		<tr>
-	        			<td><?php echo trim(str_replace('["', '', str_replace('"]', '', substr($log, 0, strpos($log, " [31m"))))); ?></td>
-	        			<td><?php echo trim(substr($log, (strpos($log, " [31m") + 6), strpos($log, '[39m') - (strpos($log, " [31m") + 6))); ?></td>
-	        			<td><?php echo trim(str_replace("[39m", "", substr($log, (strpos($log, "[36m") + 5)))); ?></td>
+	        			<td align="center"><?php echo trim(substr($log, stripos($log, '["') + 2, stripos($log, '"]') - 2)); ?></td>
+	        			<td align="center"><?php echo trim(substr($log, stripos($log, '"]') + 2, stripos($log, ' : ', stripos($log, '"]')) - stripos($log, '"]') - 1)); ?></td>
+	        			<td align="center"><?php echo trim(substr($log, stripos($log, ':', stripos($log, '"]')) + 1)); ?></td>
 	        		</tr>
 	        	<?php } ?>
 		        </tr>
