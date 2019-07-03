@@ -17,7 +17,7 @@ if (!empty($pid)) {
 
 if (!empty($pid) && (!empty($pid[$_ENV['PID_NUMBER']]) && is_numeric($pid[$_ENV['PID_NUMBER']]))) {
 	$status = 'running (pid ' . $pid[$_ENV['PID_NUMBER']] . ')';
-	$pid = $pid[12];
+	$pid = $pid[$_ENV['PID_NUMBER']];
 	$running = true;
 } else {
 	$pid = false;
