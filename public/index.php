@@ -1,35 +1,26 @@
 <?php
 
+require __DIR__ . '/../vendor/autoload.php';
+
+$dotenv = Dotenv\Dotenv::create(__DIR__ . '/..');
+$dotenv->load();
+
 $status = 'not running.';
 $running = false;
 
-// Whatever your local server is called, put it here.
-if ($_SERVER['HTTP_HOST'] == 'localhost') {
-	$pid = shell_exec('ps aux | grep "Main.js --prod"');
-} else {
-	$pid = shell_exec('ps -u | grep /usr/local/bin/node');
-}
+$pid = shell_exec($_ENV['PID']);
+$server = $_ENV['SERVER_FRIENDLY_NAME'];
 
 if (!empty($pid)) {
 	$pid = explode(' ', $pid);
 }
 
-if ($_SERVER['HTTP_HOST'] == 'localhost') {
-	if (!empty($pid) && (!empty($pid[12]) && is_numeric($pid[12]))) {
-		$status = 'running (pid ' . $pid[12] . ')';
-		$pid = $pid[12];
-		$running = true;
-	} else {
-		$pid = false;
-	}
+if (!empty($pid) && (!empty($pid[$_ENV['PID_NUMBER']]) && is_numeric($pid[$_ENV['PID_NUMBER']]))) {
+	$status = 'running (pid ' . $pid[$_ENV['PID_NUMBER']] . ')';
+	$pid = $pid[12];
+	$running = true;
 } else {
-	if (!empty($pid) && (!empty($pid[2]) && is_numeric($pid[2]))) {
-		$status = 'running (pid ' . $pid[2] . ')';
-		$pid = $pid[2];
-		$running = true;
-	} else {
-		$pid = false;
-	}
+	$pid = false;
 }
 
 ?>
@@ -102,6 +93,6 @@ if ($_SERVER['HTTP_HOST'] == 'localhost') {
 		<header>
 			<p><a href="/">HUD</a> | <a href="/execution">Execution Log</a> | <a href="/performance">Performance Log</a></p>
 		</header>
-      	<iframe src="http://localhost:3030" name="shell" frameborder="0" scrolling="no" width="100%" height="800"></iframe>
+      	<iframe src="http://<?php echo $server; ?>:3030" name="shell" frameborder="0" scrolling="no" width="100%" height="800"></iframe>
 	</body>
 </html>

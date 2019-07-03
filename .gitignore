@@ -3,12 +3,16 @@ logs
 *.log
 npm-debug.log*
 
+# Sublime
+*.sublime*
+
 # Runtime data
 pids
 *.pid
 *.seed
 
 # Configuration
+*.env
 config/*.env
 config/*.js
 config/*.json

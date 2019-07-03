@@ -1,27 +1,20 @@
 <?php
 
+require __DIR__ . '/../vendor/autoload.php';
+
+$dotenv = Dotenv\Dotenv::create(__DIR__ . '/..');
+$dotenv->load();
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-	// Whatever your local server is called, put it here.
-	if ($_SERVER['HTTP_HOST'] == 'localhost') {
-		$pid = shell_exec('ps aux | grep "Main.js --prod"');
-	} else {
-		$pid = shell_exec('ps -u | grep /usr/local/bin/node');
-	}
+	$pid = shell_exec($_ENV['PID']);
 
 	if (!empty($pid)) {
 		$pid = explode(' ', $pid);
 	}
 
-	// Whatever your local server is called, put it here.
-	if ($_SERVER['HTTP_HOST'] == 'localhost') {
-		if (!empty($pid) && (!empty($pid[12]) && is_numeric($pid[12]))) {
-			if ($pid[12] == $_POST['pid']) {
-				shell_exec('kill -9 ' . $pid[12]);
-			}
-		}
-	} else {
-		if (!empty($pid) && (!empty($pid[2]) && is_numeric($pid[2]))) {
-			shell_exec('kill -9 ' . $pid[2]);
+	if (!empty($pid) && (!empty($pid[$_ENV['PID_NUMBER']]) && is_numeric($pid[$_ENV['PID_NUMBER']]))) {
+		if ($pid[$_ENV['PID_NUMBER']] == $_POST['pid']) {
+			shell_exec('kill -9 ' . $pid[$_ENV['PID_NUMBER']]);
 		}
 	}
 }

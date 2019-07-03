@@ -1,0 +1,13 @@
+{
+    "name": "steveeakin/binance-triangle-arbitrage-dash",
+    "type": "project",
+    "require": {
+        "vlucas/phpdotenv": "^3.4"
+    },
+    "authors": [
+        {
+            "name": "steveeakin",
+            "email": "steve@startupblackbelt.com"
+        }
+    ]
+}
