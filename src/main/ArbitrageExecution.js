@@ -181,15 +181,15 @@ const ArbitrageExecution = {
                 };
 
                 if (resultsAB.orderId && resultsBC.orderId && resultsCA.orderId) {
-                    [actual.a.spent, actual.b.earned, fees] = ArbitrageExecution.parseActualResults(calculated.trade.ab.method, calculated.trade.symbol.b, resultsAB);
+                    [actual.a.spent, actual.b.earned, fees, assetFees] = ArbitrageExecution.parseActualResults(calculated.trade.ab.method, calculated.trade.symbol.b, resultsAB);
                     actual.fees += fees;
                     actual.assetFees.b += assetFees;
 
-                    [actual.b.spent, actual.c.earned, fees] = ArbitrageExecution.parseActualResults(calculated.trade.bc.method, calculated.trade.symbol.c, resultsBC);
+                    [actual.b.spent, actual.c.earned, fees, assetFees] = ArbitrageExecution.parseActualResults(calculated.trade.bc.method, calculated.trade.symbol.c, resultsBC);
                     actual.fees += fees;
                     actual.assetFees.c += assetFees;
 
-                    [actual.c.spent, actual.a.earned, fees] = ArbitrageExecution.parseActualResults(calculated.trade.ca.method, calculated.trade.symbol.a, resultsCA);
+                    [actual.c.spent, actual.a.earned, fees, assetFees] = ArbitrageExecution.parseActualResults(calculated.trade.ca.method, calculated.trade.symbol.a, resultsCA);
                     actual.fees += fees;
                     actual.assetFees.a += assetFees;
 
@@ -231,7 +231,7 @@ const ArbitrageExecution = {
         return BinanceApi.marketBuyOrSell(calculated.trade.ab.method)(calculated.trade.ab.ticker, calculated.ab)
             .then((results) => {
                 if (results.orderId) {
-                    [actual.a.spent, actual.b.earned, fees] = ArbitrageExecution.parseActualResults(calculated.trade.ab.method, calculated.trade.symbol.b, results);
+                    [actual.a.spent, actual.b.earned, fees, assetFees] = ArbitrageExecution.parseActualResults(calculated.trade.ab.method, calculated.trade.symbol.b, results);
                     actual.fees += fees;
                     actual.assetFees.b += assetFees;
                     recalculated.bc = CalculationNode.recalculateTradeLeg(calculated.trade.bc, actual.b.earned, BinanceApi.cloneDepth(calculated.trade.bc.ticker, CONFIG.DEPTH.SIZE));
@@ -240,7 +240,7 @@ const ArbitrageExecution = {
             })
             .then((results) => {
                 if (results.orderId) {
-                    [actual.b.spent, actual.c.earned, fees] = ArbitrageExecution.parseActualResults(calculated.trade.bc.method, calculated.trade.symbol.c, results);
+                    [actual.b.spent, actual.c.earned, fees, assetFees] = ArbitrageExecution.parseActualResults(calculated.trade.bc.method, calculated.trade.symbol.c, results);
                     actual.fees += fees;
                     actual.assetFees.c += assetFees;
                     recalculated.ca = CalculationNode.recalculateTradeLeg(calculated.trade.ca, actual.c.earned, BinanceApi.cloneDepth(calculated.trade.ca.ticker, CONFIG.DEPTH.SIZE));
@@ -249,7 +249,7 @@ const ArbitrageExecution = {
             })
             .then((results) => {
                 if (results.orderId) {
-                    [actual.c.spent, actual.a.earned, fees] = ArbitrageExecution.parseActualResults(calculated.trade.ca.method, calculated.trade.symbol.a, results);
+                    [actual.c.spent, actual.a.earned, fees, assetFees] = ArbitrageExecution.parseActualResults(calculated.trade.ca.method, calculated.trade.symbol.a, results);
                     actual.fees += fees;
                     actual.assetFees.a += assetFees;
                 }
