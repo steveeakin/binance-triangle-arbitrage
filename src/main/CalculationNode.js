@@ -174,6 +174,12 @@ const CalculationNode = {
 
         if (parseFloat(bidRates[0]) > parseFloat(askRates[0])) throw new Error(`Spread does not exist for ${ticker}`);
 
+// TODO:  Trace the length.
+console.log('--------');
+console.log(bidRates.length);
+console.log(askRates.length);
+console.log('--------');
+
         if (ticker === symbolFrom + symbolTo) {
             for (i=0; i<bidRates.length; i++) {
                 rate = parseFloat(bidRates[i]);
