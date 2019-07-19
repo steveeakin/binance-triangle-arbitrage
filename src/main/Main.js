@@ -68,7 +68,10 @@ ArbitrageExecution.refreshBalances()
         // Allow time to read output before starting calculation cycles
         setTimeout(calculateArbitrage, 4000);
     })
-    .catch(console.error);
+    .catch((err) => {
+        logger.performance.warn(err);
+        console.error(err);
+    });
 
 function calculateArbitrage() {
     /*

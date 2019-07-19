@@ -7,7 +7,7 @@ const PINO_OPTS = {
     level: CONFIG.LOG.LEVEL.toLowerCase(),
     timestamp: () => `,"time":"${new Date().toLocaleString()}"`,
     redact: {
-        paths: ['[*].KEYS.API','[*].KEYS.SECRET'],
+        paths: ['[*].KEYS.[*]'],
         censor: '**********'
     },
     prettyPrint: CONFIG.LOG.PRETTY_PRINT,
