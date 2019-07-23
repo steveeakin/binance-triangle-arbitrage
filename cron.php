@@ -15,7 +15,10 @@ if (!empty($pid)) {
 
 if (file_exists('.start') && !(!empty($pid) && (!empty($pid[$_ENV['CRON_PID_NUMBER']]) && is_numeric($pid[$_ENV['CRON_PID_NUMBER']])))) {
 	// If .start exists, and pid is empty, launch.
-	$process = shell_exec($_ENV['LAUNCH_CODE']);
+	if (stristr($pid[$_ENV['CRON_NODE_PID']], 'node') === false) {
+		// If this isn't running already.
+		$process = shell_exec($_ENV['LAUNCH_CODE']);
+	}
 } elseif (!file_exists('.start') && (!empty($pid) && (!empty($pid[$_ENV['CRON_PID_NUMBER']]) && is_numeric($pid[$_ENV['CRON_PID_NUMBER']])))) {
 	// If start doesn't exist, and the process is running, kill the process.
 	shell_exec('kill -9 ' . $pid[$_ENV['CRON_PID_NUMBER']]);
