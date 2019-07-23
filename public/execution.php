@@ -25,7 +25,7 @@ $logs = explode("\n", $logs);
 	        		<tr>
 	        			<td align="center"><?php echo trim(substr($log, stripos($log, '["') + 2, stripos($log, '"]') - 2)); ?></td>
 	        			<td align="center"><?php echo trim(substr($log, stripos($log, '"]') + 2, stripos($log, ': ', stripos($log, '"]')) - stripos($log, '"]') - 1)); ?></td>
-	        			<td align="center"><?php echo trim(substr($log, stripos($log, ':', stripos($log, '"]')) + 1)); ?></td>
+	        			<td align="left"><?php echo trim(substr($log, stripos($log, ':', stripos($log, '"]')) + 1)); ?></td>
 	        		</tr>
 	        	<?php } ?>
 		        </tr>
