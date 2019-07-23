@@ -6,6 +6,9 @@ $dotenv = Dotenv\Dotenv::create(__DIR__ . '/..');
 $dotenv->load();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+	// Kill the .start file
+	unlink(__DIR__ . '/../.start');
+
 	$pid = shell_exec($_ENV['PID']);
 
 	if (!empty($pid)) {
