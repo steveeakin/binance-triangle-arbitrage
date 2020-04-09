@@ -1,6 +1,6 @@
 const CONFIG = require('../../config/config');
 const logger = require('./Loggers');
-const binance = require('node-binance-api')();
+const Binance = require('node-binance-api');
 const os = require('os');
 const MarketCache = require('./MarketCache');
 const HUD = require('./HUD');
@@ -9,28 +9,16 @@ const ArbitrageExecution = require('./ArbitrageExecution');
 const CalculationNode = require('./CalculationNode');
 const SpeedTest = require('./SpeedTest');
 
-if ((CONFIG.TRADING.ENABLED === true) && ((CONFIG.DEMO == 'undefined') || !CONFIG.DEMO)) {
-    binance.options({
-        APIKEY: CONFIG.KEYS.APIPROD,
-        APISECRET: CONFIG.KEYS.SECRETPROD,
-        test: !CONFIG.TRADING.ENABLED
-    });
-} else {
-    binance.options({
-        APIKEY: CONFIG.KEYS.API,
-        APISECRET: CONFIG.KEYS.SECRET,
-        test: !CONFIG.TRADING.ENABLED
-    });
-}
-
 var tradeFees = [];
+// Helps identify application startup
+logger.execution.info(logger.LINE);
+logger.performance.info(logger.LINE);
 
 if ((CONFIG.TRADING.ENABLED === true) && ((CONFIG.DEMO == 'undefined') || !CONFIG.DEMO)) {
     console.log(`WARNING! Order execution is enabled!\n`);
 }
 
-ArbitrageExecution.refreshBalances()
-    .then(() => SpeedTest.multiPing(5))
+SpeedTest.multiPing()
     .then((pings) => {
         const msg = `Successfully pinged the Binance api in ${(binance.sum(pings) / pings.length).toFixed(0)} ms`;
         console.log(msg);
@@ -40,16 +28,16 @@ ArbitrageExecution.refreshBalances()
     })
     .then(BinanceApi.getFees)
     .then((result) => tradeFees = result)
+    .then(ArbitrageExecution.refreshBalances)
     .then(BinanceApi.exchangeInfo)
     .then(exchangeInfo => MarketCache.initialize(exchangeInfo, CONFIG.TRADING.WHITELIST, CONFIG.INVESTMENT.BASE, tradeFees))
-    .then(() => logger.execution.debug({configuration: CONFIG}))
     .then(checkConfig)
     .then(checkBalances)
     .then(() => {
         // Listen for depth updates
         const tickers = MarketCache.getTickerArray();
         console.log(`Opening ${tickers.length} depth websockets ...`);
-        return BinanceApi.depthCache(tickers, CONFIG.DEPTH.SIZE, CONFIG.DEPTH.INITIALIZATION_INTERVAL);
+        return BinanceApi.depthCacheStaggered(tickers, CONFIG.DEPTH.SIZE, CONFIG.DEPTH.INITIALIZATION_INTERVAL);
     })
     .then(() => {
         console.log();
@@ -66,54 +54,20 @@ ArbitrageExecution.refreshBalances()
         }
 
         // Allow time to read output before starting calculation cycles
-        setTimeout(calculateArbitrage, 4000);
+        setTimeout(calculateArbitrage, 5000);
     })
-    .catch((err) => {
-        logger.performance.warn(err);
-        console.error(err);
-    });
+    .catch(console.error);
 
 function calculateArbitrage() {
-    /*
-    const before = new Date().getTime();
-
-    let errorCount = 0;
-    let results = {};
-
-    MarketCache.relationships.forEach(relationship => {
-        try {
-            const calculated = CalculationNode.optimize(relationship);
-            if (calculated) {
-                if (CONFIG.HUD.ENABLED) results[calculated.id] = calculated;
-                ArbitrageExecution.executeCalculatedPosition(calculated);
-            }
-        } catch (error) {
-            if ((CONFIG.DEMO == 'undefined') || !CONFIG.DEMO) {
-                logger.performance.debug(error.message);
-            }
-            errorCount++;
-        }
-    });
-
-    const totalCalculations = MarketCache.relationships.length;
-    const completedCalculations = totalCalculations - errorCount;
-    const calculationTime = new Date().getTime() - before;
-
-    const msg = `Completed ${completedCalculations}/${totalCalculations} (${((completedCalculations/totalCalculations)*100).toFixed(1)}%) calculations in ${calculationTime} ms`;
-
-    if ((CONFIG.DEMO == 'undefined') || !CONFIG.DEMO) {
-        (errorCount > 0) ? logger.performance.info(msg) : logger.performance.trace(msg);
-    }
-
-    const tickersWithoutDepthUpdate = MarketCache.getTickersWithoutDepthCacheUpdate();
-
-    if ((CONFIG.DEMO == 'undefined') || !CONFIG.DEMO) {
-        (tickersWithoutDepthUpdate.length > 0) && logger.execution.trace(`Found ${tickersWithoutDepthUpdate.length} tickers without a depth cache update: [${tickersWithoutDepthUpdate}]`);
-    }
-    */
     if (CONFIG.DEPTH.PRUNE) MarketCache.pruneDepthsAboveThreshold(CONFIG.DEPTH.SIZE);
 
-    const { calculationTime, successCount, errorCount, results } = CalculationNode.cycle(MarketCache.relationships, BinanceApi.cloneDepths(MarketCache.getTickerArray(), CONFIG.DEPTH.SIZE), (e) => logger.performance.warn(e), ArbitrageExecution.executeCalculatedPosition);
+    const { calculationTime, successCount, errorCount, results } = CalculationNode.cycle(
+        MarketCache.relationships,
+        BinanceApi.getDepthSnapshots(MarketCache.getTickerArray()),
+        (e) => logger.performance.warn(e),
+        ArbitrageExecution.executeCalculatedPosition
+    );
+
 
     if (CONFIG.HUD.ENABLED) refreshHUD(results);
     displayCalculationResults(successCount, errorCount, calculationTime);
@@ -123,23 +77,16 @@ function calculateArbitrage() {
 function displayCalculationResults(successCount, errorCount, calculationTime) {
     const totalCalculations = successCount + errorCount;
 
-    const msg = `Completed ${successCount}/${totalCalculations} (${((successCount/totalCalculations)*100).toFixed(1)}%) calculations in ${calculationTime} ms`;
-    (errorCount > 0) ? logger.performance.debug(msg) : logger.performance.trace(msg);
+    if (errorCount > 0) {
+        logger.performance.warn(`Completed ${successCount}/${totalCalculations} (${((successCount/totalCalculations) * 100).toFixed(1)}%) calculations in ${calculationTime} ms`);
+    }
 
-    if (CalculationNode.cycleCount % 300 === 0) {
-        const { bidCounts, askCounts } = MarketCache.getAggregateDepthSizes();
-        const bidAvg = (binance.sum(bidCounts) / bidCounts.length).toFixed(0);
-        const askAvg = (binance.sum(askCounts) / askCounts.length).toFixed(0);
-        const calAvg = (binance.sum(CalculationNode.timings.slice(-300)) / Math.min(300, CalculationNode.timings.length)).toFixed(0);
-        logger.performance.debug(`                      [[min] - [max]] ~ [avg]`);
-        logger.performance.debug(`Calculation times:    [${Math.min(...CalculationNode.timings)} - ${Math.max(...CalculationNode.timings)}] ~ ${calAvg} ms`);
-        logger.performance.debug(`Bid depth cache size: [${Math.min(...bidCounts)} - ${Math.max(...bidCounts)}] ~ ${bidAvg}`);
-        logger.performance.debug(`Ask depth cache size: [${Math.min(...askCounts)} - ${Math.max(...askCounts)}] ~ ${askAvg}`);
-
+    if (CalculationNode.cycleCount % 500 === 0) {
         const tickersWithoutDepthUpdate = MarketCache.getTickersWithoutDepthCacheUpdate();
         if (tickersWithoutDepthUpdate.length > 0) {
-            logger.execution.trace(`Found ${tickersWithoutDepthUpdate.length} tickers without a depth cache update: [${tickersWithoutDepthUpdate}]`);
+            logger.performance.debug(`Tickers without a depth cache update: [${tickersWithoutDepthUpdate}]`);
         }
+        logger.performance.debug(`Recent calculations completed in ${calculationTime} ms`);
     }
 }
 
@@ -151,7 +98,7 @@ function checkConfig() {
             EXECUTION_STRATEGY: ['linear', 'parallel']
         },
         DEPTH: {
-            SIZE: [5, 10, 20, 50, 100, 500, 1000]
+            SIZE: [5, 10, 20, 50, 100, 500]
         }
     };
 
@@ -268,12 +215,12 @@ function checkBalances() {
         console.log(`Checking balances ...`);
 
         if (ArbitrageExecution.balances[CONFIG.INVESTMENT.BASE].available < CONFIG.INVESTMENT.MIN) {
-            const msg = `An available balance of ${CONFIG.INVESTMENT.MIN} ${CONFIG.INVESTMENT.BASE} is required to satisfy your INVESTMENT.MIN configuration`;
+            const msg = `Only detected ${ArbitrageExecution.balances[CONFIG.INVESTMENT.BASE].available} ${CONFIG.INVESTMENT.BASE}, but ${CONFIG.INVESTMENT.MIN} ${CONFIG.INVESTMENT.BASE} is required to satisfy your INVESTMENT.MIN configuration`;
             logger.execution.error(msg);
             throw new Error(msg);
         }
         if (ArbitrageExecution.balances[CONFIG.INVESTMENT.BASE].available < CONFIG.INVESTMENT.MAX) {
-            const msg = `An available balance of ${CONFIG.INVESTMENT.MAX} ${CONFIG.INVESTMENT.BASE} is required to satisfy your INVESTMENT.MAX configuration`;
+            const msg = `Only detected ${ArbitrageExecution.balances[CONFIG.INVESTMENT.BASE].available} ${CONFIG.INVESTMENT.BASE}, but ${CONFIG.INVESTMENT.MAX} ${CONFIG.INVESTMENT.BASE} is required to satisfy your INVESTMENT.MAX configuration`;
             logger.execution.error(msg);
             throw new Error(msg);
         }

@@ -1,5 +1,20 @@
+const CONFIG = require('../../config/config');
 const logger = require('./Loggers');
-const binance = require('node-binance-api')();
+const Binance = require('node-binance-api');
+
+if ((CONFIG.TRADING.ENABLED === true) && ((CONFIG.DEMO == 'undefined') || !CONFIG.DEMO)) {
+    binance = new Binance({
+        APIKEY: CONFIG.KEYS.APIPROD,
+        APISECRET: CONFIG.KEYS.SECRETPROD,
+        test: !CONFIG.TRADING.ENABLED
+    });
+} else {
+    binance = new Binance({
+        APIKEY: CONFIG.KEYS.API,
+        APISECRET: CONFIG.KEYS.SECRET,
+        test: !CONFIG.TRADING.ENABLED
+    });
+}
 
 const BinanceApi = {
 
@@ -34,41 +49,25 @@ const BinanceApi = {
         });
     },
 
-    cloneDepth(ticker, levels) {
-        const tmp = binance.depthCache(ticker);
-        const prune = (depthSnapshot, levels) => {
-            if (!levels) return depthSnapshot;
-            return Object.keys(depthSnapshot)
-                .slice(0, levels)
-                .reduce((prunedDepthSnapshot, key) => {
-                    prunedDepthSnapshot[key] = depthSnapshot[key];
-                    return prunedDepthSnapshot;
-                }, {});
-        };
-        return {
-            eventTime: tmp.eventTime,
-            lastUpdateId: tmp.lastUpdateId,
-            asks: prune({...tmp.asks}, levels),
-            bids: prune({...tmp.bids}, levels)
-        };
-    },
-
-    cloneDepths(tickers, levels) {
-        return tickers.reduce((clone, ticker) => {
-            clone[ticker] = BinanceApi.cloneDepth(ticker, levels);
-            return clone;
-        }, {});
-    },
+    getDepthSnapshots(tickers) {
+        const depthSnapshot = {};
+        if (!Array.isArray(tickers)) tickers = [tickers];
+        tickers.forEach((ticker) => {
+            depthSnapshot[ticker] = binance.depthCache(ticker);
+        });
+        return depthSnapshot;
+     },
 
     marketBuy(ticker, quantity) {
         logger.execution.info(`${binance.getOption('test') ? 'Test: Buying' : 'Buying'} ${quantity} ${ticker} @ market price`);
+        const before = new Date().getTime();
         return new Promise((resolve, reject) => {
             binance.marketBuy(ticker, quantity, (error, response) => {
                 if (error) return BinanceApi.handleBuyOrSellError(error, reject);
                 if (binance.getOption('test')) {
                     logger.execution.info(`Test: Successfully bought ${ticker} @ market price`);
                 } else {
-                    logger.execution.info(`Successfully bought ${response.executedQty} ${ticker} @ a quote of ${response.cummulativeQuoteQty}`);
+                    logger.execution.info(`Successfully bought ${response.executedQty} ${ticker} @ a quote of ${response.cummulativeQuoteQty} in ${new Date().getTime() - before} ms`);
                 }
                 return resolve(response);
             })
@@ -77,13 +76,14 @@ const BinanceApi = {
 
     marketSell(ticker, quantity) {
         logger.execution.info(`${binance.getOption('test') ? 'Test: Selling' : 'Selling'} ${quantity} ${ticker} @ market price`);
+        const before = new Date().getTime();
         return new Promise((resolve, reject) => {
             binance.marketSell(ticker, quantity, (error, response) => {
                 if (error) return BinanceApi.handleBuyOrSellError(error, reject);
                 if (binance.getOption('test')) {
                     logger.execution.info(`Test: Successfully sold ${ticker} @ market price`);
                 } else {
-                    logger.execution.info(`Successfully sold ${response.executedQty} ${ticker} @ a quote of ${response.cummulativeQuoteQty}`);
+                    logger.execution.info(`Successfully sold ${response.executedQty} ${ticker} @ a quote of ${response.cummulativeQuoteQty} in ${new Date().getTime() - before} ms`);
                 }
                 return resolve(response);
             });
@@ -112,7 +112,7 @@ const BinanceApi = {
         });
     },
 
-    depthCache(tickers, limit=100, stagger=200) {
+    depthCacheStaggered(tickers, limit, stagger) {
         return binance.websockets.depthCacheStaggered(tickers, BinanceApi.sortDepthCache, limit, stagger);
     },
 
