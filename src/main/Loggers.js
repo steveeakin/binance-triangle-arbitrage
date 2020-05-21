@@ -11,7 +11,11 @@ const PINO_OPTS = {
         censor: '**********'
     },
     prettyPrint: CONFIG.LOG.PRETTY_PRINT,
-    useLevelLabels: true,
+    formatters: {
+        level: (label, number) => {
+            return { level: number }
+        }
+    },
     base: null
 };
 

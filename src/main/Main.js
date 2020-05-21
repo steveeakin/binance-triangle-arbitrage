@@ -1,6 +1,5 @@
 const CONFIG = require('../../config/config');
 const logger = require('./Loggers');
-const Binance = require('node-binance-api');
 const os = require('os');
 const MarketCache = require('./MarketCache');
 const HUD = require('./HUD');
@@ -20,7 +19,7 @@ if ((CONFIG.TRADING.ENABLED === true) && ((CONFIG.DEMO == 'undefined') || !CONFI
 
 SpeedTest.multiPing()
     .then((pings) => {
-        const msg = `Successfully pinged the Binance api in ${(binance.sum(pings) / pings.length).toFixed(0)} ms`;
+        const msg = `Successfully pinged Binance in ${(pings.reduce((a,b) => a+b, 0) / pings.length).toFixed(0)} ms`;
         console.log(msg);
         if ((CONFIG.DEMO == 'undefined') || !CONFIG.DEMO) {
             logger.performance.info(msg);

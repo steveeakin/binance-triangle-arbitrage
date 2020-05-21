@@ -1,5 +1,5 @@
 const CONFIG = require('../../config/config.json');
-const binance = require('node-binance-api')();
+const BinanceApi = require('./BinanceApi');
 
 // Force demo off & hud off if we are running prod via the CLI.
 // Not forcing trading mode to be enalbed though...
@@ -62,7 +62,7 @@ const MarketCache = {
                 }, {});
         };
         MarketCache.getTickerArray().forEach(ticker => {
-            let depth = binance.depthCache(ticker);
+            let depth = BinanceApi.depthCache(ticker);
             depth.bids = prune(depth.bids, threshold);
             depth.asks = prune(depth.asks, threshold);
         });
@@ -73,7 +73,7 @@ const MarketCache = {
         let askCounts = [];
 
         tickers.forEach(ticker => {
-            const depth = binance.depthCache(ticker);
+            const depth = BinanceApi.depthCache(ticker);
             bidCounts.push(Object.values(depth.bids).length);
             askCounts.push(Object.values(depth.asks).length);
         });
@@ -93,7 +93,7 @@ const MarketCache = {
     },
 
     getTickersWithoutDepthCacheUpdate() {
-        return MarketCache.getTickerArray().filter(ticker => !binance.depthCache(ticker).eventTime);
+        return MarketCache.getTickerArray().filter(ticker => !BinanceApi.depthCache(ticker).eventTime);
     },
 
     createTrade(a, b, c) {
