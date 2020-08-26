@@ -15,6 +15,10 @@ class ComposerStaticInit42ab6bce258d16e6450d4ac42a827fb3
         array (
             'Symfony\\Polyfill\\Ctype\\' => 23,
         ),
+        'P' => 
+        array (
+            'PhpOption\\' => 10,
+        ),
         'D' => 
         array (
             'Dotenv\\' => 7,
@@ -26,19 +30,13 @@ class ComposerStaticInit42ab6bce258d16e6450d4ac42a827fb3
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
         ),
+        'PhpOption\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
+        ),
         'Dotenv\\' => 
         array (
             0 => __DIR__ . '/..' . '/vlucas/phpdotenv/src',
-        ),
-    );
-
-    public static $prefixesPsr0 = array (
-        'P' => 
-        array (
-            'PhpOption\\' => 
-            array (
-                0 => __DIR__ . '/..' . '/phpoption/phpoption/src',
-            ),
         ),
     );
 
@@ -47,7 +45,6 @@ class ComposerStaticInit42ab6bce258d16e6450d4ac42a827fb3
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInit42ab6bce258d16e6450d4ac42a827fb3::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInit42ab6bce258d16e6450d4ac42a827fb3::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit42ab6bce258d16e6450d4ac42a827fb3::$prefixesPsr0;
 
         }, null, ClassLoader::class);
     }
