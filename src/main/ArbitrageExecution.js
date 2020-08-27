@@ -8,10 +8,9 @@ const ArbitrageExecution = {
     inProgressIds: new Set(),
     inProgressSymbols: new Set(),
     attemptedPositions: {},
-    balances: {},
 
     executeCalculatedPosition(calculated) {
-        const startTime = new Date().getTime();
+        const startTime = Date.now();
 
         if (!ArbitrageExecution.isSafeToExecute(calculated)) return false;
 
@@ -30,13 +29,10 @@ const ArbitrageExecution = {
         ArbitrageExecution.inProgressSymbols.add(symbol.c);
 
         logger.execution.info(`Attempting to execute ${calculated.id} with an age of ${Math.max(age.ab, age.bc, age.ca).toFixed(0)} ms and expected profit of ${calculated.percent.toFixed(4)}%`);
-        logger.execution.debug(`${calculated.trade.ab.ticker} depth cache age: ${age.ab.toFixed(0)} ms`);
-        logger.execution.debug(`${calculated.trade.bc.ticker} depth cache age: ${age.bc.toFixed(0)} ms`);
-        logger.execution.debug(`${calculated.trade.ca.ticker} depth cache age: ${age.ca.toFixed(0)} ms`);
 
         return ArbitrageExecution.getExecutionStrategy()(calculated)
             .then((actual) => {
-                logger.execution.info(`${CONFIG.TRADING.ENABLED ? 'Executed' : 'Test: Executed'} ${calculated.id} position in ${new Date().getTime() - startTime} ms`);
+                logger.execution.info(`${CONFIG.TRADING.ENABLED ? 'Executed' : 'Test: Executed'} ${calculated.id} position in ${Date.now() - startTime} ms`);
 
                 // Results are only collected when a trade is executed
                 if (!CONFIG.TRADING.ENABLED) return;
@@ -89,7 +85,6 @@ const ArbitrageExecution = {
                 logger.execution.info();
             })
             .catch((err) => logger.execution.error(err.message))
-            .then(ArbitrageExecution.refreshBalances)
             .then(() => {
                 ArbitrageExecution.inProgressIds.delete(calculated.id);
                 ArbitrageExecution.inProgressSymbols.delete(symbol.a);
@@ -97,14 +92,14 @@ const ArbitrageExecution = {
                 ArbitrageExecution.inProgressSymbols.delete(symbol.c);
 
                 if (CONFIG.TRADING.EXECUTION_CAP && ArbitrageExecution.inProgressIds.size === 0 && ArbitrageExecution.getAttemptedPositionsCount() >= CONFIG.TRADING.EXECUTION_CAP) {
-                    logger.execution.error(`Cannot exceed user defined execution cap of ${CONFIG.TRADING.EXECUTION_CAP} executions`);
+                    logger.execution.info(`Cannot exceed user defined execution cap of ${CONFIG.TRADING.EXECUTION_CAP} executions`);
                     process.exit();
                 }
             });
     },
 
     isSafeToExecute(calculated) {
-        const now = new Date().getTime();
+        const now = Date.now();
         const { symbol } = calculated.trade;
 
         // Profit Threshold is Not Satisfied
@@ -142,17 +137,12 @@ const ArbitrageExecution = {
         return true;
     },
 
-    refreshBalances() {
-        return BinanceApi.getBalances()
-            .then(balances => ArbitrageExecution.balances = balances);
-    },
-
     getAttemptedPositionsCount() {
         return Object.keys(ArbitrageExecution.attemptedPositions).length;
     },
 
     getAttemptedPositionsCountInLastSecond() {
-        const timeFloor = new Date().getTime() - 1000;
+        const timeFloor = Date.now() - 1000;
         return Object.keys(ArbitrageExecution.attemptedPositions).filter(time => time > timeFloor).length;
     },
 
@@ -247,7 +237,7 @@ const ArbitrageExecution = {
                     [actual.a.spent, actual.b.earned, fees, assetFees] = ArbitrageExecution.parseActualResults(calculated.trade.ab.method, calculated.trade.symbol.b, results);
                     actual.fees += fees;
                     actual.assetFees.b += assetFees;
-                    recalculated.bc = CalculationNode.recalculateTradeLeg(calculated.trade.bc, actual.b.earned, BinanceApi.cloneDepth(calculated.trade.bc.ticker, CONFIG.DEPTH.SIZE));
+                    recalculated.bc = CalculationNode.recalculateTradeLeg(calculated.trade.bc, actual.b.earned, BinanceApi.depthCache(calculated.trade.bc.ticker));
                 }
                 return BinanceApi.marketBuyOrSell(calculated.trade.bc.method)(calculated.trade.bc.ticker, recalculated.bc);
             })
@@ -256,7 +246,7 @@ const ArbitrageExecution = {
                     [actual.b.spent, actual.c.earned, fees, assetFees] = ArbitrageExecution.parseActualResults(calculated.trade.bc.method, calculated.trade.symbol.c, results);
                     actual.fees += fees;
                     actual.assetFees.c += assetFees;
-                    recalculated.ca = CalculationNode.recalculateTradeLeg(calculated.trade.ca, actual.c.earned, BinanceApi.cloneDepth(calculated.trade.ca.ticker, CONFIG.DEPTH.SIZE));
+                    recalculated.ca = CalculationNode.recalculateTradeLeg(calculated.trade.ca, actual.c.earned, BinanceApi.depthCache(calculated.trade.ca.ticker));
                 }
                 return BinanceApi.marketBuyOrSell(calculated.trade.ca.method)(calculated.trade.ca.ticker, recalculated.ca);
             })
@@ -286,7 +276,10 @@ const ArbitrageExecution = {
 
         // Now taking the BNB fees into account for logging, unless it's an asset fee in which case it's accounted for above.
         // A BNB trade *will* reduce your earned coins, so it needs to come into account above.
-        const fees = fills.filter(f => (f.commissionAsset === 'BNB' && f.commissionAsset !== ticker)).map(f => parseFloat(f.commission)).reduce((total, fee) => total + fee, 0);
+        const fees = fills
+            .filter(fill => fill.commissionAsset === 'BNB')
+            .map(fill => parseFloat(fill.commission))
+            .reduce((total, fee) => total + fee, 0);
 
         if ((fees <= 0) || !fees) {
             logger.execution.warn(`Probably a failed trade from fee set as 0.  Which can happen when fills is null.`);

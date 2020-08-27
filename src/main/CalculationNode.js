@@ -6,7 +6,7 @@ const CalculationNode = {
     cycleCount: 0,
 
     cycle(relationships, depthCacheClone, errorCallback, executionCallback) {
-        const startTime = new Date().getTime();
+        const startTime = Date.now();
 
         let successCount = 0;
         let errorCount = 0;
@@ -31,7 +31,7 @@ const CalculationNode = {
             }
         });
 
-        const calculationTime = new Date().getTime() - startTime;
+        const calculationTime = Date.now() - startTime;
 
         CalculationNode.cycleCount++;
 
@@ -42,7 +42,7 @@ const CalculationNode = {
         let quantity, calculation;
         let bestCalculation = null;
 
-        for (quantity = CONFIG.INVESTMENT.MIN || CONFIG.INVESTMENT.STEP; quantity <= CONFIG.INVESTMENT.MAX; quantity += CONFIG.INVESTMENT.STEP) {
+        for (quantity = CONFIG.INVESTMENT.MIN; quantity <= CONFIG.INVESTMENT.MAX; quantity += CONFIG.INVESTMENT.STEP) {
             calculation = CalculationNode.calculate(quantity, trade, depthSnapshot);
             if (!bestCalculation || calculation.percent > bestCalculation.percent) {
                 bestCalculation = calculation;
@@ -148,7 +148,7 @@ const CalculationNode = {
         calculated.c.delta = calculated.c.earned - calculated.c.spent;
 
         calculated.percent = (calculated.a.delta / calculated.a.spent * 100) - totalFee;
-        if (!calculated.percent) calculated.percent = 0;
+        if (!calculated.percent) calculated.percent = -100;
 
         return calculated;
     },
@@ -186,7 +186,6 @@ const CalculationNode = {
                     return amountTo + (amountFrom * rate);
                 }
             }
-
             throw new Error(`Bid depth (${bidRates.length}) too shallow to convert ${amountFrom} ${symbolFrom} to ${symbolTo} using ${ticker}`);
         } else {
             for (i=0; i<askRates.length; i++) {
@@ -201,7 +200,6 @@ const CalculationNode = {
                     return amountTo + (amountFrom / rate);
                 }
             }
-
             throw new Error(`Ask depth (${askRates.length}) too shallow to convert ${amountFrom} ${symbolFrom} to ${symbolTo} using ${ticker}`);
         }
     },
@@ -229,7 +227,6 @@ const CalculationNode = {
                     return amountTo + (amountFrom * rate);
                 }
             }
-
             throw new Error(`Ask depth (${askRates.length}) too shallow to reverse convert ${amountFrom} ${symbolFrom} to ${symbolTo} using ${ticker}`);
         } else {
             for (i=0; i<bidRates.length; i++) {
@@ -244,7 +241,6 @@ const CalculationNode = {
                     return amountTo + (amountFrom / rate);
                 }
             }
-
             throw new Error(`Bid depth (${bidRates.length}) too shallow to reverse convert ${amountFrom} ${symbolFrom} to ${symbolTo} using ${ticker}`);
         }
     },

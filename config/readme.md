@@ -42,7 +42,7 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 * Description: Minimum investment amount of the base currency to consider
     
 #### `INVESTMENT.MAX` (Number)
-* Default: `0.035`
+* Default: `0.030`
 * Description: Maximum investment amount of the base currency to consider
 
 #### `INVESTMENT.STEP` (Number)
@@ -80,18 +80,18 @@ Upon each version update you should copy the new syntax from `config.json.exampl
     * `0` - No limit on executions
 
 #### `TRADING.TAKER_FEE` (Number)
-* Default: `0.00`
+* Default: `0.10`
 * Description: Market taker fee (percent)
 * Example: 0.015% would be entered as 0.015
 
 #### `TRADING.PROFIT_THRESHOLD` (Number)
-* Default: `0.30`
+* Default: `0.00`
 * Description: Minimum profit (percent) required to consider executing a position
-* Example: 0.30% would be entered as 0.30
+* Example: 0.50% would be entered as 0.50
 
 #### `TRADING.AGE_THRESHOLD` (Number)
-* Default: `300`
-* Description: Maximum time (ms) since the oldest depth tick involved in the position
+* Default: `100`
+* Description: Maximum time (ms) since the oldest depth tick involved in the position required to consider executing a position
 
 #### `TRADING.WHITELIST` (Array | String)
 * Default: `[]`
@@ -109,7 +109,7 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 
 #### `HUD.ARB_COUNT` (Number)
 * Default: `10`
-* Description: Number of arbs shown on the HUD
+* Description: Number of triangular arbitrage positions shown on the HUD
 
 
 ---
@@ -119,7 +119,7 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 
 #### `LOG.LEVEL` (String)
 * Default: `"debug"`
-* Description: Log level to configure how verbose logging messages are
+* Description: Log level to configure how verbose logging messages are. Output can be found in the /log directory
 * Values:
     * `"fatal"`
     * `"error"`
@@ -152,7 +152,7 @@ Upon each version update you should copy the new syntax from `config.json.exampl
     * `500`
 
 #### `DEPTH.PRUNE` (Boolean)
-* Default: `false`
+* Default: `true`
 * Description: Remove depth cache entries with a depth greater than `DEPTH.SIZE` before each calculation cycle
 
 #### `DEPTH.INITIALIZATION_INTERVAL` (Number)
@@ -162,14 +162,21 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 
 ---
 
+### `TIMING`
 
-#### `CALCULATION_COOLDOWN` (Number)
+#### `TIMING.RECEIVE_WINDOW` (Number)
+* Default: `5000`
+* Description: Time (ms) after a given timestamp until a request is no longer considered valid
+
+#### `TIMING.USE_SERVER_TIME` (Boolean)
+* Default: `false`
+* Description: Synchronize with the Binance API server time and modify request timestamps
+
+#### `TIMING.CALCULATION_COOLDOWN` (Number)
 * Default: `250`
-* Description: Delay (ms) after calculations are performed before starting another cycle
-
+* Description: Delay (ms) between completing calculations and starting another cycle
 
 ---
-
 
 #### `DEMO` (Boolean)
 * Default: `false`

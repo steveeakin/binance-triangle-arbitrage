@@ -10,28 +10,26 @@ if (process.argv[2] && (process.argv[2] === '--prod')) {
 
 const MarketCache = {
 
-    symbols: [],
-    tickers: {},
+    symbols: new Set(),
+    tickers: {
+        trading: {},
+        watching: []
+    },
     relationships: [],
 
     initialize(exchangeInfo, whitelistSymbols, baseSymbol, tradeFees) {
-        let tickers = [];
-        let tradingSymbolObjects = exchangeInfo.symbols.filter(symbolObj => symbolObj.status === 'TRADING');
-        let symbols = new Set();
+        const tradingSymbolObjects = exchangeInfo.symbols.filter(symbolObj => symbolObj.status === 'TRADING');
+
         let fees = [];
 
         console.log(`Found ${tradingSymbolObjects.length}/${exchangeInfo.symbols.length} currently trading tickers`);
 
-        // Extract Symbols and Tickers
+        // Extract All Symbols and Tickers
         tradingSymbolObjects.forEach(symbolObj => {
-            if (whitelistSymbols.length > 0) {
-                if (!whitelistSymbols.includes(symbolObj.baseAsset)) return;
-                if (!whitelistSymbols.includes(symbolObj.quoteAsset)) return;
-            }
-            symbols.add(symbolObj.baseAsset);
-            symbols.add(symbolObj.quoteAsset);
+            MarketCache.symbols.add(symbolObj.baseAsset);
+            MarketCache.symbols.add(symbolObj.quoteAsset);
             symbolObj.dustDecimals = Math.max(symbolObj.filters.filter(f => f.filterType === 'LOT_SIZE')[0].minQty.indexOf('1') - 1, 0);
-            tickers[symbolObj.symbol] = symbolObj;
+            MarketCache.tickers.trading[symbolObj.symbol] = symbolObj;
         });
 
         // Extract fees
@@ -39,17 +37,18 @@ const MarketCache = {
             fees[fee.symbol] = fee;
         });
 
-        // Initialize market cache
-        MarketCache.symbols = symbols;
-        MarketCache.tickers = tickers;
         MarketCache.relationships = MarketCache.getTradesFromSymbol(baseSymbol);
         MarketCache.fees = fees;
 
         console.log(`Found ${MarketCache.relationships.length} triangular relationships`);
-    },
 
-    getTickerArray() {
-        return Object.keys(MarketCache.tickers);
+        const uniqueTickers = new Set();
+        MarketCache.relationships.forEach(relationship => {
+            uniqueTickers.add(relationship.ab.ticker);
+            uniqueTickers.add(relationship.bc.ticker);
+            uniqueTickers.add(relationship.ca.ticker);
+        });
+        MarketCache.tickers.watching = Array.from(uniqueTickers);
     },
 
     pruneDepthsAboveThreshold(threshold=100) {
@@ -61,28 +60,15 @@ const MarketCache = {
                     return prunedDepthSnapshot;
                 }, {});
         };
-        MarketCache.getTickerArray().forEach(ticker => {
-            let depth = BinanceApi.depthCache(ticker);
+        MarketCache.tickers.watching.forEach(ticker => {
+            const depth = BinanceApi.depthCache(ticker);
             depth.bids = prune(depth.bids, threshold);
             depth.asks = prune(depth.asks, threshold);
         });
     },
 
-    getAggregateDepthSizes(tickers=MarketCache.getTickerArray()) {
-        let bidCounts = [];
-        let askCounts = [];
-
-        tickers.forEach(ticker => {
-            const depth = BinanceApi.depthCache(ticker);
-            bidCounts.push(Object.values(depth.bids).length);
-            askCounts.push(Object.values(depth.asks).length);
-        });
-
-        return { bidCounts, askCounts };
-    },
-
     getTradesFromSymbol(symbol1) {
-        let trades = [];
+        const trades = [];
         MarketCache.symbols.forEach(symbol2 => {
             MarketCache.symbols.forEach(symbol3 => {
                 const trade = MarketCache.createTrade(symbol1, symbol2, symbol3);
@@ -92,14 +78,20 @@ const MarketCache = {
         return trades;
     },
 
-    getTickersWithoutDepthCacheUpdate() {
-        return MarketCache.getTickerArray().filter(ticker => !BinanceApi.depthCache(ticker).eventTime);
+    getWatchedTickersWithoutDepthCacheUpdate() {
+        return MarketCache.tickers.watching.filter(ticker => !BinanceApi.depthCache(ticker).eventTime);
     },
 
     createTrade(a, b, c) {
         a = a.toUpperCase();
         b = b.toUpperCase();
         c = c.toUpperCase();
+
+        if (CONFIG.TRADING.WHITELIST.length > 0) {
+            if (!CONFIG.TRADING.WHITELIST.includes(a)) return;
+            if (!CONFIG.TRADING.WHITELIST.includes(b)) return;
+            if (!CONFIG.TRADING.WHITELIST.includes(c)) return;
+        }
 
         const ab = MarketCache.getRelationship(a, b);
         if (!ab) return;
@@ -122,19 +114,19 @@ const MarketCache = {
     },
 
     getRelationship(a, b) {
-        if (MarketCache.tickers[a+b]) return {
+        if (MarketCache.tickers.trading[a+b]) return {
             method: 'Sell',
             ticker: a+b,
             base: a,
             quote: b,
-            dustDecimals: MarketCache.tickers[a+b].dustDecimals
+            dustDecimals: MarketCache.tickers.trading[a+b].dustDecimals
         };
-        if (MarketCache.tickers[b+a]) return {
+        if (MarketCache.tickers.trading[b+a]) return {
             method: 'Buy',
             ticker: b+a,
             base: b,
             quote: a,
-            dustDecimals: MarketCache.tickers[b+a].dustDecimals
+            dustDecimals: MarketCache.tickers.trading[b+a].dustDecimals
         };
         return null;
     }
