@@ -13,19 +13,11 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 
 #### `KEYS.API` (String)
 * Default: `""`
-* Description: Binance api key for a demo environment (read-only is preferred)
+* Description: Binance api key
 
 #### `KEYS.SECRET` (String)
 * Default: `""`
-* Description: Binance api secret for a demo environment (read-only is preferred)
-
-#### `KEYS.APIPROD` (String)
-* Default: `""`
-* Description: Binance api key for production
-
-#### `KEYS.SECRETPROD` (String)
-* Default: `""`
-* Description: Binance api secret for production
+* Description: Binance api secret
 
 
 ---
@@ -38,11 +30,11 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 * Description: Symbol which all triangle trades must start and end with
     
 #### `INVESTMENT.MIN` (Number)
-* Default: `0.015`
+* Default: `0.010`
 * Description: Minimum investment amount of the base currency to consider
     
 #### `INVESTMENT.MAX` (Number)
-* Default: `0.030`
+* Default: `0.015`
 * Description: Maximum investment amount of the base currency to consider
 
 #### `INVESTMENT.STEP` (Number)
@@ -53,13 +45,41 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 ---
 
 
-### `TRADING`
+### `SCANNING`
 
-#### `TRADING.ENABLED` (Boolean)
+#### `SCANNING.TIMEOUT` (Number)
+* Default: `250`
+* Description: Delay (ms) between completing calculations and starting another cycle
+* Special Values:
+    * `0` - Executes calculation cycles as soon as new depth information is received
+* [Extended Documentation](../src/resources/docs/scanning.md)
+
+#### `SCANNING.DEPTH` (Number)
+* Default: `20`
+* Description: Order book depth to maintain locally on each ticker
+* [Extended Documentation](../src/resources/docs/depths.md)
+
+#### `SCANNING.WHITELIST` (Array | String)
+* Default: `[]`
+* Description: Symbols to include when searching for triangle arbitrage
+
+
+---
+
+
+### `EXECUTION`
+
+#### `EXECUTION.ENABLED` (Boolean)
 * Default: `false`
 * Description: Execute identified arbitrage positions when found
 
-#### `TRADING.EXECUTION_STRATEGY` (String)
+#### `EXECUTION.CAP` (Number)
+* Default: `1`
+* Description: Maximum number of executions to attempt before shutting down
+* Special Values:
+    * `0` - No limit on executions
+
+#### `EXECUTION.STRATEGY` (String)
 * Default: `"linear"`
 * Description: Execution strategy to use
 * [Extended Documentation](../src/resources/docs/strategies.md)
@@ -67,35 +87,27 @@ Upon each version update you should copy the new syntax from `config.json.exampl
     * `"linear"` - each trade of the triangle arbitrage is executed sequentially
     * `"parallel"` - all three trades of the triangle arbitrage are executed at the same time
 
-#### `TRADING.EXECUTION_TEMPLATE` (Array | String)
+#### `EXECUTION.TEMPLATE` (Array | String)
 * Default: `["BUY", "SELL", "SELL"]`
 * Description: Restricts the order type of each leg in the position
-* Special Values:
-    * `null` - No restriction on order type
+* Values:
+    * `"BUY"` - Only allow BUY order type
+    * `"SELL"` - Only allow SELL order type
+    * `"*"` - No restriction on order type
 
-#### `TRADING.EXECUTION_CAP` (Number)
-* Default: `1`
-* Description: Maximum number of executions to attempt before shutting down
-* Special Values:
-    * `0` - No limit on executions
-
-#### `TRADING.TAKER_FEE` (Number)
+#### `EXECUTION.FEE` (Number)
 * Default: `0.10`
 * Description: Market taker fee (percent)
 * Example: 0.015% would be entered as 0.015
 
-#### `TRADING.PROFIT_THRESHOLD` (Number)
+#### `EXECUTION.THRESHOLD.PROFIT` (Number)
 * Default: `0.00`
 * Description: Minimum profit (percent) required to consider executing a position
 * Example: 0.50% would be entered as 0.50
 
-#### `TRADING.AGE_THRESHOLD` (Number)
-* Default: `100`
+#### `EXECUTION.THRESHOLD.AGE` (Number)
+* Default: `150`
 * Description: Maximum time (ms) since the oldest depth tick involved in the position required to consider executing a position
-
-#### `TRADING.WHITELIST` (Array | String)
-* Default: `[]`
-* Description: Symbols to include when searching for triangle arbitrage
 
 
 ---
@@ -105,11 +117,15 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 
 #### `HUD.ENABLED` (Boolean)
 * Default: `true`
-* Description: Display and refresh the heads up display
+* Description: Display the heads up display
 
-#### `HUD.ARB_COUNT` (Number)
+#### `HUD.ROWS` (Number)
 * Default: `10`
-* Description: Number of triangular arbitrage positions shown on the HUD
+* Description: Number of triangular arbitrage positions shown on the HUD sorted by profit
+
+#### `HUD.REFRESH_RATE` (Number)
+* Default: `500`
+* Description: Delay (ms) between each refresh and re-draw of the HUD
 
 
 ---
@@ -121,63 +137,48 @@ Upon each version update you should copy the new syntax from `config.json.exampl
 * Default: `"debug"`
 * Description: Log level to configure how verbose logging messages are. Output can be found in the /log directory
 * Values:
+    * `"silent"`
     * `"fatal"`
     * `"error"`
     * `"warn"`
     * `"info"`
     * `"debug"`
     * `"trace"`
-    * `"silent"`
 
 #### `LOG.PRETTY_PRINT` (Boolean)
 * Default: `true`
 * Description: Format the logs with pino-pretty. Read the logs via a terminal for best results
 
-
----
-
-
-### `DEPTH`
-
-#### `DEPTH.SIZE` (Number)
-* Default: `50`
-* Description: Order book depth to maintain locally on each ticker
-* [Extended Documentation](../src/resources/docs/depths.md)
-* Values:
-    * `5`
-    * `10`
-    * `20`
-    * `50`
-    * `100`
-    * `500`
-
-#### `DEPTH.PRUNE` (Boolean)
-* Default: `true`
-* Description: Remove depth cache entries with a depth greater than `DEPTH.SIZE` before each calculation cycle
-
-#### `DEPTH.INITIALIZATION_INTERVAL` (Number)
-* Default: `75`
-* Description: Delay (ms) between the initialization of each depth websocket
+#### `LOG.STATUS_UPDATE_INTERVAL` (Number)
+* Default: `2`
+* Description: Interval (minute) between each status update
+* Special Values:
+    * `0` - Status updates will NOT be logged
 
 
 ---
 
-### `TIMING`
 
-#### `TIMING.RECEIVE_WINDOW` (Number)
-* Default: `5000`
-* Description: Time (ms) after a given timestamp until a request is no longer considered valid
+### `WEBSOCKET`
 
-#### `TIMING.USE_SERVER_TIME` (Boolean)
-* Default: `false`
-* Description: Synchronize with the Binance API server time and modify request timestamps
+#### `WEBSOCKET.BUNDLE_SIZE` (Number)
+* Default: `1`
+* Description: Number of tickers combined/included in each websocket
 
-#### `TIMING.CALCULATION_COOLDOWN` (Number)
-* Default: `250`
-* Description: Delay (ms) between completing calculations and starting another cycle
+#### `WEBSOCKET.INITIALIZATION_INTERVAL` (Number)
+* Default: `200`
+* Description: Delay (ms) between the initialization of each websocket
+
 
 ---
 
-#### `DEMO` (Boolean)
-* Default: `false`
-* Description: Enable demo mode (will not trade, uses a read-only key, and ignores the balance warnings)
+
+### `BINANCE_OPTIONS`
+* Default: `{}`
+* Description: Optional parameters for [jaggedsoft's binance api library](https://github.com/jaggedsoft/node-binance-api)
+* Example:
+    ```json
+    "BINANCE_OPTIONS": {
+      "useServerTime": true
+    }
+    ```

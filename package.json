@@ -1,16 +1,16 @@
 {
   "name": "binance-triangle-arbitrage",
-  "version": "5.5.1",
+  "version": "6.0.2",
   "repository": {
     "type": "git",
-    "url": "https://github.com/steveeakin/binance-triangle-arbitrage.git"
+    "url": "https://github.com/bmino/binance-triangle-arbitrage.git"
   },
   "author": {
-    "name": "Steve Eakin"
+    "name": "Brandon Mino"
   },
   "engines": {
-    "node": "12.18.3",
-    "npm": "6.14.5"
+    "node": "12.19.0",
+    "npm": "6.14.8"
   },
   "scripts": {
     "start": "node src/main/Main.js"
@@ -18,8 +18,9 @@
   "dependencies": {
     "blessed": "^0.1.81",
     "node-binance-api": "^0.11.11",
-    "pino": "^6.5.0",
-    "pino-pretty": "^4.1.0"
+    "pino": "^6.7.0",
+    "pino-pretty": "^4.3.0",
+    "systeminformation": "^4.30.1"
   },
   "license": "MIT"
 }
